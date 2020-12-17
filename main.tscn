@@ -1,0 +1,122 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://icon.png" type="Texture" id=1]
+[ext_resource path="res://main.gd" type="Script" id=2]
+
+[node name="Node" type="Node"]
+script = ExtResource( 2 )
+
+[node name="TextEdit" type="TextEdit" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_right = -157.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="WindowDialog" type="WindowDialog" parent="."]
+visible = true
+margin_left = 102.0
+margin_top = 114.0
+margin_right = 602.0
+margin_bottom = 364.0
+rect_min_size = Vector2( 500, 300 )
+window_title = "About the plugin"
+resizable = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VBoxContainer" type="VBoxContainer" parent="WindowDialog"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 4.0
+margin_right = -4.0
+margin_bottom = -4.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HB" type="HBoxContainer" parent="WindowDialog/VBoxContainer"]
+margin_right = 492.0
+margin_bottom = 268.0
+size_flags_vertical = 3
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="TextureRect" type="TextureRect" parent="WindowDialog/VBoxContainer/HB"]
+margin_right = 64.0
+margin_bottom = 268.0
+texture = ExtResource( 1 )
+stretch_mode = 4
+
+[node name="TabContainer" type="TabContainer" parent="WindowDialog/VBoxContainer/HB"]
+margin_left = 68.0
+margin_right = 492.0
+margin_bottom = 268.0
+size_flags_horizontal = 3
+
+[node name="About" type="RichTextLabel" parent="WindowDialog/VBoxContainer/HB/TabContainer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 32.0
+margin_right = -4.0
+margin_bottom = -4.0
+text = "Hello World"
+
+[node name="License" type="RichTextLabel" parent="WindowDialog/VBoxContainer/HB/TabContainer"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 32.0
+margin_right = -4.0
+margin_bottom = -4.0
+text = "This is the license"
+
+[node name="GridContainer" type="GridContainer" parent="WindowDialog/VBoxContainer/HB/TabContainer"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 32.0
+margin_right = -4.0
+margin_bottom = -4.0
+
+[node name="Label" type="Label" parent="WindowDialog/VBoxContainer/HB/TabContainer/GridContainer"]
+margin_right = 73.0
+margin_bottom = 14.0
+text = "Hello world"
+
+[node name="Label2" type="Label" parent="WindowDialog/VBoxContainer/HB/TabContainer/GridContainer"]
+margin_top = 18.0
+margin_right = 73.0
+margin_bottom = 32.0
+text = "Yolo"
+align = 2
+
+[node name="Label3" type="Label" parent="WindowDialog/VBoxContainer/HB/TabContainer/GridContainer"]
+margin_top = 36.0
+margin_right = 73.0
+margin_bottom = 50.0
+
+[node name="Button" type="Button" parent="WindowDialog/VBoxContainer/HB/TabContainer/GridContainer"]
+margin_top = 54.0
+margin_right = 73.0
+margin_bottom = 74.0
+text = "Bwiwiwiw"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="WindowDialog/VBoxContainer"]
+margin_top = 272.0
+margin_right = 492.0
+margin_bottom = 292.0
+alignment = 1
+
+[node name="Button" type="Button" parent="WindowDialog/VBoxContainer/HBoxContainer"]
+margin_left = 231.0
+margin_right = 261.0
+margin_bottom = 20.0
+text = "Ok"
