@@ -3,6 +3,8 @@ Scene code converter
 
 This plugin helps you convert any branch of nodes into C++ engine code that can be used to develop the Godot Editor. This is particularly useful for making GUIs, and the plugin was primarily developped towards this goal.
 
+![Screenshot](screenshot.png)
+
 
 Installation
 --------------
