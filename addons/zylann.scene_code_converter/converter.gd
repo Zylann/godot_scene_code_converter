@@ -123,9 +123,6 @@ static func _get_property_set_code(obj: Object, property_name: String, value) ->
 				return str("set_v_size_flags(", _get_size_flags_code(value), ")")
 			"size_flags_horizontal":
 				return str("set_h_size_flags(", _get_size_flags_code(value), ")")
-
-			"rect_min_size":
-				return str("set_custom_minimum_size(", value_code, ")")
 	
 	if obj is TextureRect:
 		match property_name:
