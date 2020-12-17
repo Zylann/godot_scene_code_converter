@@ -18,7 +18,7 @@ Usage
 
 - Open the Godot Editor and open the scene containing the nodes you want to convert
 - When the plugin is activated, a new button will appear in the main viewport's toolbar, in `2D` mode.
-- Select any node in the tree
+- Select the root node of the branch you want to convert
 - Click the `Convert to engine code` button
 - This will open a popup with the generated code. It may be pasted in the constructor of the root node's C++ class, and will build a copy of the selected node and all its children.
 - You may want to adjust a few things in the generated code:
