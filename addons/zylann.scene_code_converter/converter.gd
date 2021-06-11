@@ -2,40 +2,39 @@ tool
 
 # Converts a scene branch into C++ engine-side code that will build it.
 
-var _vars = []
-var _lines = []
+# Format: { node: var_name }
+var _var_names := {}
+var _lines := PoolStringArray()
 
 
 func convert_branch(root: Node) -> String:
-	_vars.clear()
-	_lines.clear()
+	_var_names.clear()
+	_lines.resize(0)
 	_process_node(root, root)
-	var code := PoolStringArray(_lines).join("\n")
+	var code := _lines.join("\n")
 	return code
 
 
-func _process_node(node: Node, root: Node) -> Dictionary:
+func _process_node(node: Node, root: Node) -> void:
 	var klass_name := node.get_class()
-	
-	var var_name = ""
+
+	var var_name := ""
 	if node != root:
-		var_name = _pascal_to_snake(klass_name)
-		if var_name in _vars:
-			var incremented_name = var_name
-			var i = 1
-			while incremented_name in _vars:
-				i += 1
-				incremented_name = str(var_name, i)
-			var_name = incremented_name
-		_vars.append(var_name)
-	
-	# Create the node in a variable if necessary
-	if var_name != "":
-		if not _has_default_node_name(node):
-			_lines.append(str("// ", node.name))
+		var_name = _pascal_to_snake(node.name)
+
+		# Ensure that each variable has a unique name.
+		var duplicate_count := 0
+		for other_var_name in _var_names.values():
+			if other_var_name.begins_with(var_name):
+				duplicate_count += 1
+		if duplicate_count > 0:
+			push_warning("Multiple Nodes are named \"%s\", give each node a unique name for the best results." % node.name)
+			var_name += String(duplicate_count)
+
+		_var_names[node] = var_name
 		_lines.append(str(klass_name, " *", var_name, " = memnew(", klass_name, ");"))
-	
-	# Ignore properties which are sometimes overriden by other factors
+
+	# Ignore properties which are sometimes overriden by other factors.
 	var ignored_properties := []
 	if node is Control:
 		if (node.get_parent() is Container) or node == root:
@@ -52,6 +51,7 @@ func _process_node(node: Node, root: Node) -> Dictionary:
 		if node.get_parent() is TabContainer:
 			ignored_properties.append("visible")
 
+	# used to check if a property is overriden
 	var default_instance : Node = ClassDB.instance(klass_name)
 	assert(default_instance is Node)
 
@@ -67,7 +67,7 @@ func _process_node(node: Node, root: Node) -> Dictionary:
 		if current_value != default_value:
 			#print(prop.name, " = ", current_value)
 			var set_code := _get_property_set_code(node, prop.name, current_value)
-			if var_name == "":
+			if node == root:
 				_lines.append(str(set_code, ";"))
 			else:
 				_lines.append(str(var_name, "->", set_code, ";"))
@@ -77,28 +77,21 @@ func _process_node(node: Node, root: Node) -> Dictionary:
 	# Process children
 	if node.get_child_count() > 0:
 		_lines.append("")
-		
-		for i in node.get_child_count():
-			var child = node.get_child(i)
-			if child.owner == null:
-				continue
-			var child_info = _process_node(child, root)
-			if var_name == "":
-				_lines.append(str("add_child(", child_info.var_name, ");"))
+
+		for child in node.get_children():
+			_process_node(child, root)
+			if node == root:
+				_lines.append(str("add_child(", _var_names[child], ");"))
 			else:
-				_lines.append(str(var_name, "->add_child(", child_info.var_name, ");"))
+				_lines.append(str(var_name, "->add_child(", _var_names[child], ");"))
 			_lines.append("")
-	
-	return {
-		"var_name": var_name
-	}
 
 
 static func _get_property_set_code(obj: Object, property_name: String, value) -> String:
 	var value_code := _value_to_code(value)
-	
+
 	# We first check very specific cases for best translation (but requires specific code)
-	
+
 	if obj is Control:
 		match property_name:
 			"margin_left":
@@ -118,29 +111,29 @@ static func _get_property_set_code(obj: Object, property_name: String, value) ->
 				return str("set_anchor(MARGIN_TOP, ", value_code, ")")
 			"anchor_bottom":
 				return str("set_anchor(MARGIN_BOTTOM, ", value_code, ")")
-				
+
 			"size_flags_vertical":
 				return str("set_v_size_flags(", _get_size_flags_code(value), ")")
 			"size_flags_horizontal":
 				return str("set_h_size_flags(", _get_size_flags_code(value), ")")
-	
+
 	if obj is TextureRect:
 		match property_name:
 			"stretch_mode":
 				return str("set_stretch_mode(", _texture_rect_stretch_mode_codes[value], ")")
-	
+
 	if obj is BoxContainer:
 		match property_name:
 			"alignment":
 				return str("set_alignment(", _box_container_alignment_codes[value], ")")
-	
+
 	if obj is Label:
 		match property_name:
 			"align":
 				return str("set_align(", _label_align_codes[value], ")")
 			"valign":
 				return str("set_valign(", _label_valign_codes[value], ")")
-	
+
 	# Check if the setter is only aliased
 	for klass in _aliased_setters:
 		if obj is klass:
@@ -148,7 +141,7 @@ static func _get_property_set_code(obj: Object, property_name: String, value) ->
 			if property_name in setters:
 				var setter_name : String = setters[property_name]
 				return str(setter_name, "(", value_code, ")")
-	
+
 	# Assume regular setter
 	return str("set_", property_name, "(", value_code, ")")
 
@@ -158,24 +151,22 @@ static func _get_property_set_code(obj: Object, property_name: String, value) ->
 
 static func _value_to_code(v) -> String:
 	match(typeof(v)):
+		# var2str() will automatically pad decimals for floats
+		# See https://github.com/godotengine/godot-proposals/issues/1693
 		TYPE_BOOL:
-			if v:
-				return "true"
-			else:
-				return "false"
+			return "true" if v else "false"
+		TYPE_REAL:
+			return str(var2str(v), "f")
 		TYPE_VECTOR2:
-			return str("Vector2(", v.x, ", ", v.y, ")")
+			return str("Vector2(", var2str(v.x), "f, ", var2str(v.y), "f)")
 		TYPE_VECTOR3:
-			return str("Vector3(", v.x, ", ", v.y, ", ", v.z, ")")
+			return str("Vector3(", var2str(v.x), "f, ", var2str(v.y), "f, ", var2str(v.z), "f)")
 		TYPE_COLOR:
-			return str("Color(", v.r, ", ", v.g, ", ", v.b, ", ", v.a, ")")
+			return str("Color(", var2str(v.r), "f, ", var2str(v.g), "f, ", var2str(v.b), "f, ", var2str(v.a), "f)")
 		TYPE_STRING:
 			return str("TTR(\"", v, "\")")
 		TYPE_OBJECT:
-			if v is Resource:
-				return "nullptr /* TODO resource here */"
-			else:
-				return "nullptr /* TODO reference here */"
+				return "/* TODO: reference here */"
 		_:
 			return str(v)
 
@@ -185,22 +176,13 @@ static func _pascal_to_snake(src: String) -> String:
 	for i in len(src):
 		var c : String = src[i]
 		dst += c.to_lower()
-		if i + 1 < len(src):
-			var next_c = src[i + 1]
-			if next_c != next_c.to_lower():
-				dst += "_"
+		if i + 1 == len(src):
+			continue
+
+		var next_c = src[i + 1]
+		if next_c != next_c.to_lower():
+			dst += "_"
 	return dst
-
-
-static func _has_default_node_name(node: Node) -> bool:
-	var cname = node.get_class()
-	if node.name == cname:
-		return true
-	# Let's go the dumb way
-	for i in range(2, 10):
-		if node.name == str(cname, i):
-			return true
-	return false
 
 
 # Some setters have a different name in engine code
@@ -212,6 +194,7 @@ const _aliased_setters = {
 		"window_title": "set_title"
 	}
 }
+
 
 static func _get_size_flags_code(sf: int) -> String:
 	match sf:
@@ -229,6 +212,7 @@ static func _get_size_flags_code(sf: int) -> String:
 			return str(sf)
 
 # IF ONLY GODOT ALLOWED US TO GET ENUM NAMES AS STRINGS
+# See https://github.com/godotengine/godot-proposals/issues/2854
 
 const _label_align_codes = {
 	Label.ALIGN_LEFT: "Label::ALIGN_LEFT",
