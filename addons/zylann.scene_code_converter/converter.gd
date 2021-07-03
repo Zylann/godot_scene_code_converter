@@ -170,7 +170,7 @@ static func _value_to_code(v) -> String:
 		TYPE_COLOR:
 			return str("Color(", v.r, ", ", v.g, ", ", v.b, ", ", v.a, ")")
 		TYPE_STRING:
-			return str("TTR(\"", v, "\")")
+			return str("TTR(\"", v.c_escape(), "\")")
 		TYPE_OBJECT:
 			if v is Resource:
 				return "nullptr /* TODO resource here */"
